@@ -6,3 +6,5 @@
 [![Godoc](https://godoc.org/github.com/casbin/casbin-go-cli?status.svg)](https://pkg.go.dev/github.com/casbin/casbin-go-cli)
 [![Release](https://img.shields.io/github/release/casbin/casbin-go-cli.svg)](https://github.com/casbin/casbin-go-cli/releases/latest)
 [![Discord](https://img.shields.io/discord/1022748306096537660?logo=discord&label=discord&color=5865F2)](https://discord.gg/S5UjpzGZjN)
+
+casbin-go-cli is a command-line tool based on Casbin (Go language), enabling you to use all of Casbin APIs in the shell.
