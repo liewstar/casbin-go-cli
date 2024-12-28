@@ -46,7 +46,6 @@ jobs:
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
-        if: github.ref_type == 'tag'
         with:
           distribution: goreleaser
           version: '~> v2'
