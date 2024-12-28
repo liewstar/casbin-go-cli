@@ -20,10 +20,20 @@ import (
 
 func Test_enforceCmd(t *testing.T) {
 	basicArgs := []string{"enforce", "-m", "../test/basic_model.conf", "-p", "../test/basic_policy.csv"}
-	assertExecuteCommand(t, rootCmd, "Allowed\n", append(basicArgs, "alice", "data1", "read")...)
-	assertExecuteCommand(t, rootCmd, "Denied\n", append(basicArgs, "alice", "data1", "write")...)
-	assertExecuteCommand(t, rootCmd, "Denied\n", append(basicArgs, "alice", "data2", "read")...)
-	assertExecuteCommand(t, rootCmd, "Denied\n", append(basicArgs, "alice", "data2", "write")...)
-	assertExecuteCommand(t, rootCmd, "Allowed\n", append(basicArgs, "bob", "data2", "write")...)
-	assertExecuteCommand(t, rootCmd, "Denied\n", append(basicArgs, "bob", "data2", "read")...)
+	assertExecuteCommand(t, rootCmd, "{\"allow\":true,\"explain\":[]}\n", append(basicArgs, "alice", "data1", "read")...)
+	assertExecuteCommand(t, rootCmd, "{\"allow\":false,\"explain\":[]}\n", append(basicArgs, "alice", "data1", "write")...)
+	assertExecuteCommand(t, rootCmd, "{\"allow\":false,\"explain\":[]}\n", append(basicArgs, "alice", "data2", "read")...)
+	assertExecuteCommand(t, rootCmd, "{\"allow\":false,\"explain\":[]}\n", append(basicArgs, "alice", "data2", "write")...)
+	assertExecuteCommand(t, rootCmd, "{\"allow\":true,\"explain\":[]}\n", append(basicArgs, "bob", "data2", "write")...)
+	assertExecuteCommand(t, rootCmd, "{\"allow\":false,\"explain\":[]}\n", append(basicArgs, "bob", "data2", "read")...)
+}
+
+func Test_enforceExCmd(t *testing.T) {
+	basicArgs := []string{"enforceEx", "-m", "../test/basic_model.conf", "-p", "../test/basic_policy.csv"}
+	assertExecuteCommand(t, rootCmd, "{\"allow\":true,\"explain\":[\"alice\",\"data1\",\"read\"]}\n", append(basicArgs, "alice", "data1", "read")...)
+	assertExecuteCommand(t, rootCmd, "{\"allow\":false,\"explain\":[]}\n", append(basicArgs, "alice", "data1", "write")...)
+	assertExecuteCommand(t, rootCmd, "{\"allow\":false,\"explain\":[]}\n", append(basicArgs, "alice", "data2", "read")...)
+	assertExecuteCommand(t, rootCmd, "{\"allow\":false,\"explain\":[]}\n", append(basicArgs, "alice", "data2", "write")...)
+	assertExecuteCommand(t, rootCmd, "{\"allow\":true,\"explain\":[\"bob\",\"data2\",\"write\"]}\n", append(basicArgs, "bob", "data2", "write")...)
+	assertExecuteCommand(t, rootCmd, "{\"allow\":false,\"explain\":[]}\n", append(basicArgs, "bob", "data2", "read")...)
 }
