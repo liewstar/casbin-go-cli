@@ -16,9 +16,14 @@ package cmd
 
 import (
 	"encoding/json"
+	"reflect"
+	"regexp"
+	"strconv"
 
 	"github.com/casbin/casbin/v2"
 	"github.com/spf13/cobra"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type ResponseBody struct {
@@ -26,83 +31,91 @@ type ResponseBody struct {
 	Explain []string `json:"explain"`
 }
 
-// enforceExCmd represents the enforceEx command.
-var enforceExCmd = &cobra.Command{
-	Use:   "enforceEx",
-	Short: "Test if a 'subject' can access a 'object' with a given 'action' based on the policy",
-	Long:  `Test if a 'subject' can access a 'object' with a given 'action' based on the policy`,
-	Run: func(cmd *cobra.Command, args []string) {
-		modelPath, _ := cmd.Flags().GetString("model")
-		policyPath, _ := cmd.Flags().GetString("policy")
+// Function to handle enforcement results.
+func handleEnforceResult(cmd *cobra.Command, res bool, explain []string, err error) {
+	if err != nil {
+		cmd.PrintErrf("Error during enforcement: %v\n", err)
+		return
+	}
 
-		e, err := casbin.NewEnforcer(modelPath, policyPath)
-		if err != nil {
-			panic(err)
+	response := ResponseBody{
+		Allow:   res,
+		Explain: explain,
+	}
+
+	encoder := json.NewEncoder(cmd.OutOrStdout())
+	encoder.SetEscapeHTML(false)
+	encoder.Encode(response)
+}
+
+// Function to parse parameters and execute policy check.
+func executeEnforce(cmd *cobra.Command, args []string, isEnforceEx bool) {
+	modelPath, _ := cmd.Flags().GetString("model")
+	policyPath, _ := cmd.Flags().GetString("policy")
+
+	e, err := casbin.NewEnforcer(modelPath, policyPath)
+	if err != nil {
+		panic(err)
+	}
+
+	// Define regex pattern to match format like {field: value}.
+	paramRegex := regexp.MustCompile(`{\s*"?(\w+)"?\s*:\s*(\d+)\s*}`)
+
+	params := make([]interface{}, len(args))
+	for i, v := range args {
+		// Using regex pattern to match parameters.
+		if matches := paramRegex.FindStringSubmatch(v); len(matches) == 3 {
+			fieldName := matches[1]
+			valueStr := matches[2]
+
+			// Convert value to integer.
+			if val, err := strconv.Atoi(valueStr); err == nil {
+				// Dynamically create struct type.
+				caser := cases.Title(language.English)
+				structType := reflect.StructOf([]reflect.StructField{
+					{
+						Name: caser.String(fieldName),
+						Type: reflect.TypeOf(0),
+					},
+				})
+
+				// Create struct instance and set value.
+				structValue := reflect.New(structType).Elem()
+				structValue.Field(0).SetInt(int64(val))
+
+				params[i] = structValue.Interface()
+				continue
+			}
 		}
+		params[i] = v
+	}
 
-		params := make([]interface{}, len(args))
-		for i, v := range args {
-			params[i] = v
-		}
-
+	if isEnforceEx {
 		res, explain, err := e.EnforceEx(params...)
-		if err != nil {
-			cmd.PrintErrf("Error during enforcement: %v\n", err)
-			return
-		}
-
-		response := ResponseBody{
-			Allow:   res,
-			Explain: explain,
-		}
-
-		jsonResponse, err := json.Marshal(response)
-		if err != nil {
-			cmd.PrintErrf("Error marshaling JSON: %v\n", err)
-			return
-		}
-
-		cmd.Println(string(jsonResponse))
-	},
+		handleEnforceResult(cmd, res, explain, err)
+	} else {
+		res, err := e.Enforce(params...)
+		handleEnforceResult(cmd, res, []string{}, err)
+	}
 }
 
 // enforceCmd represents the enforce command.
 var enforceCmd = &cobra.Command{
 	Use:   "enforce",
-	Short: "Test if a 'subject' can access a 'object' with a given 'action' based on the policy",
-	Long:  `Test if a 'subject' can access a 'object' with a given 'action' based on the policy`,
+	Short: "Test if a 'subject' can access a 'object' with a given 'action' based on the policy.",
+	Long:  `Test if a 'subject' can access a 'object' with a given 'action' based on the policy.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		modelPath, _ := cmd.Flags().GetString("model")
-		policyPath, _ := cmd.Flags().GetString("policy")
+		executeEnforce(cmd, args, false)
+	},
+}
 
-		e, err := casbin.NewEnforcer(modelPath, policyPath)
-		if err != nil {
-			panic(err)
-		}
-
-		params := make([]interface{}, len(args))
-		for i, v := range args {
-			params[i] = v
-		}
-
-		res, err := e.Enforce(params...)
-		if err != nil {
-			cmd.PrintErrf("Error during enforcement: %v\n", err)
-			return
-		}
-
-		response := ResponseBody{
-			Allow:   res,
-			Explain: []string{},
-		}
-
-		jsonResponse, err := json.Marshal(response)
-		if err != nil {
-			cmd.PrintErrf("Error marshaling response: %v\n", err)
-			return
-		}
-
-		cmd.Println(string(jsonResponse))
+// enforceExCmd represents the enforceEx command.
+var enforceExCmd = &cobra.Command{
+	Use:   "enforceEx",
+	Short: "Test if a 'subject' can access a 'object' with a given 'action' based on the policy.",
+	Long:  `Test if a 'subject' can access a 'object' with a given 'action' based on the policy.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		executeEnforce(cmd, args, true)
 	},
 }
 
@@ -110,13 +123,13 @@ func init() {
 	rootCmd.AddCommand(enforceExCmd)
 	rootCmd.AddCommand(enforceCmd)
 
-	enforceExCmd.Flags().StringP("model", "m", "", "Path to the model file")
+	enforceExCmd.Flags().StringP("model", "m", "", "Path to the model file.")
 	_ = enforceExCmd.MarkFlagRequired("model")
-	enforceExCmd.Flags().StringP("policy", "p", "", "Path to the policy file")
+	enforceExCmd.Flags().StringP("policy", "p", "", "Path to the policy file.")
 	_ = enforceExCmd.MarkFlagRequired("policy")
 
-	enforceCmd.Flags().StringP("model", "m", "", "Path to the model file")
+	enforceCmd.Flags().StringP("model", "m", "", "Path to the model file.")
 	_ = enforceCmd.MarkFlagRequired("model")
-	enforceCmd.Flags().StringP("policy", "p", "", "Path to the policy file")
+	enforceCmd.Flags().StringP("policy", "p", "", "Path to the policy file.")
 	_ = enforceCmd.MarkFlagRequired("policy")
 }
