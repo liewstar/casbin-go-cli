@@ -22,6 +22,14 @@ builds:
       - linux
       - windows
       - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X {{ .ModulePath }}/cmd.Version={{.Version}}
+      - -X {{ .ModulePath }}/cmd.BuildTime={{.Date}}
+      - -X {{ .ModulePath }}/cmd.GitHash={{.FullCommit}}
+      - -X {{ .ModulePath }}/cmd.GitTag={{.Tag}}
 
 archives:
   - format: tar.gz
@@ -42,5 +50,7 @@ changelog:
   sort: asc
   filters:
     exclude:
-      - "^docs:"
-      - "^test:"
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - '^chore:'
