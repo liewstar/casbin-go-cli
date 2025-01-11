@@ -1,6 +1,8 @@
 module github.com/casbin/casbin-go-cli
 
-go 1.19
+go 1.22.0
+
+toolchain go1.23.1
 
 require (
 	github.com/casbin/casbin/v2 v2.97.0
