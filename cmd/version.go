@@ -16,32 +16,14 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	Version = "dev"
+	Version       = "dev"
+	CasbinVersion = "dev"
 )
-
-func getCasbinVersion() string {
-	data, err := os.ReadFile("go.mod")
-	if err != nil {
-		return "dev"
-	}
-
-	for _, line := range strings.Split(string(data), "\n") {
-		if strings.Contains(line, "github.com/casbin/casbin/v2") {
-			parts := strings.Fields(line)
-			if len(parts) > 1 {
-				return parts[1]
-			}
-		}
-	}
-	return "dev"
-}
 
 func init() {
 	rootCmd.Flags().BoolP("version", "v", false, "Print version information")
@@ -50,7 +32,7 @@ func init() {
 	rootCmd.Run = func(cmd *cobra.Command, args []string) {
 		if v, _ := cmd.Flags().GetBool("version"); v {
 			fmt.Printf("casbin-go-cli version: %s\n", Version)
-			fmt.Printf("casbin version: %s\n", getCasbinVersion())
+			fmt.Printf("casbin version: %s\n", CasbinVersion)
 			return
 		}
 		if oldRun != nil {

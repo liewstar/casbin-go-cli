@@ -30,6 +30,7 @@ builds:
       - -X {{ .ModulePath }}/cmd.BuildTime={{.Date}}
       - -X {{ .ModulePath }}/cmd.GitHash={{.FullCommit}}
       - -X {{ .ModulePath }}/cmd.GitTag={{.Tag}}
+      - -X {{ .ModulePath }}/cmd.CasbinVersion={{.Env.CASBIN_VERSION}}
 
 archives:
   - format: tar.gz
